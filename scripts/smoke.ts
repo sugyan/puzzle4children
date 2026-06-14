@@ -61,20 +61,44 @@ for (const d of difficulties) {
 }
 
 // ---- pattern-next ----
+const specVal = (sp: any): number | string =>
+  sp.t === 'icon' ? sp.id : sp.t === 'count' ? sp.n : sp.t === 'size' ? sp.scale : sp.deg;
+function findPeriod(vals: (number | string)[]): number | null {
+  for (let p = 1; p < vals.length; p++) {
+    let ok = true;
+    for (let i = p; i < vals.length; i++) if (vals[i] !== vals[i - p]) { ok = false; break; }
+    if (ok) return p;
+  }
+  return null;
+}
 for (const d of difficulties) {
   for (let s = 0; s < 30; s++) {
     const p = generatePattern(s, d);
     for (const row of p.rows) {
       if (row.blanks < 1) fail(`pattern ${d} seed${s}: no blanks`);
-      const visible = row.cells.length - row.blanks;
-      if (visible < 2 * row.period) fail(`pattern ${d} seed${s}: fewer than 2 periods shown`);
-      // 周期性: cells[i] は cells[i % period] と一致
-      for (let i = 0; i < row.cells.length; i++) {
-        if (row.cells[i] !== row.cells[i % row.period]) fail(`pattern ${d} seed${s}: not periodic`);
+      if (row.specs.length < row.blanks + 2) fail(`pattern ${d} seed${s}: too short`);
+      const vals = row.specs.map(specVal);
+      if (row.kind === 'grow') {
+        // 等差: 差が一定
+        const counts = row.specs.map((sp: any) => sp.n as number);
+        const diff = counts[1] - counts[0];
+        for (let i = 1; i < counts.length; i++)
+          if (counts[i] - counts[i - 1] !== diff) fail(`pattern ${d} seed${s}: grow not arithmetic`);
+        if (diff <= 0) fail(`pattern ${d} seed${s}: grow not increasing`);
+        if (Math.max(...counts) > 9) fail(`pattern ${d} seed${s}: grow exceeds 9 dots`);
+      } else {
+        // repeat / rotate / size: 周期的で、空白が見えている周期から続いている
+        const period = findPeriod(vals);
+        if (period === null) fail(`pattern ${d} seed${s}: ${row.kind} not periodic`);
+        else {
+          const visible = row.specs.length - row.blanks;
+          // 回転は1周(=1周期)見えれば向きの変化が分かる。繰り返し/大小は2周期みせる。
+          const minVisible = row.kind === 'rotate' ? period : 2 * period;
+          if (visible < minVisible) fail(`pattern ${d} seed${s}: ${row.kind} fewer periods shown`);
+          if (row.kind === 'repeat' && new Set(vals.slice(0, period)).size < 2)
+            fail(`pattern ${d} seed${s}: repeat base not varied`);
+        }
       }
-      // 1周期に2種類以上
-      const baseSet = new Set(row.cells.slice(0, row.period));
-      if (baseSet.size < 2) fail(`pattern ${d} seed${s}: base not varied`);
     }
   }
 }
@@ -83,24 +107,17 @@ for (const d of difficulties) {
 for (const d of difficulties) {
   for (let s = 0; s < 30; s++) {
     const o = generateOdd(s, d);
-    if (o.oddIndex < 0 || o.oddIndex >= o.items.length) fail(`odd ${d} seed${s}: bad oddIndex`);
-    const sig = (it: (typeof o.items)[number]) => `${it.iconId}|${it.scale}|${it.count ?? '-'}`;
-    const oddSig = sig(o.items[o.oddIndex]);
+    if (o.oddIndex < 0 || o.oddIndex >= o.cards.length) fail(`odd ${d} seed${s}: bad oddIndex`);
+    const sig = (c: (typeof o.cards)[number]) => c.shapes.join(',');
+    // なかまはずれ以外の任意のカードを共通テンプレートとみなす
+    const commonSig = sig(o.cards[(o.oddIndex + 1) % o.cards.length]);
     let differing = 0;
-    o.items.forEach((it, i) => {
-      if (i === o.oddIndex) return;
-      if (sig(it) === oddSig) fail(`odd ${d} seed${s}: a normal item matches the odd one`);
+    o.cards.forEach((c, i) => {
+      if (sig(c) !== commonSig) differing++;
+      if (i !== o.oddIndex && sig(c) !== commonSig) fail(`odd ${d} seed${s}: a normal card differs`);
     });
-    // なかまはずれ以外はすべて同じ特徴
-    const commonSig = sig(o.items[(o.oddIndex + 1) % o.items.length]);
-    o.items.forEach((it, i) => {
-      if (i === o.oddIndex) {
-        if (sig(it) === commonSig) fail(`odd ${d} seed${s}: odd item not different`);
-      } else {
-        if (sig(it) !== commonSig) differing++;
-      }
-    });
-    if (differing !== 0) fail(`odd ${d} seed${s}: more than one differs`);
+    if (sig(o.cards[o.oddIndex]) === commonSig) fail(`odd ${d} seed${s}: odd card is identical`);
+    if (differing !== 1) fail(`odd ${d} seed${s}: exactly one card must differ (got ${differing})`);
   }
 }
 

@@ -25,17 +25,23 @@ Core infrastructure and two puzzle types are complete and verified.
 - Answer page highlights the path in color **plus step numbers and a thick line** (B&W-safe).
 
 ### Puzzle 2: パターンのつづき (Continue the Pattern) — done
-- Several rows, each a periodic pattern of period k (easy 2 / normal 2–3 / hard 3–4).
-  At least two full periods are shown, then the last cells are blanked (dashed box + faint "?")
-  for the child to draw. Icons restricted to simple, easy-to-draw shapes.
-- Answer fills each blank with the correct icon on a highlighted (yellow) cell. Self-checking:
-  the rule repeats.
+- Several rows, **each row a different rule kind** so the sheet doesn't feel monotonous:
+  - `repeat` — periodic icon cycle (period 2–4).
+  - `rotate` — an arrow turning ±90° each step (one full turn shown).
+  - `grow` — increasing dot count (+1 or +2), e.g. 1, 3, 5, …
+  - `size` — a shape cycling small/big (and small/med/big on hard).
+  The last cells are blanked (dashed box + faint "?") for the child to draw.
+- Answer fills each blank with the correct cell on a highlighted (yellow) background.
+  Self-checking: the rule continues. Cells are modeled as a `CellSpec` union (icon/count/rot/size).
 
 ### Puzzle 3: なかまはずれ (Odd One Out) — done
-- A grid of items (easy 3×2 / normal & hard 3×3). Exactly one differs along a single axis:
-  **shape**, **size**, or **count** (dots). Difficulty selects the axis and how subtle the
-  difference is (e.g. hard count uses 4–6 dots differing by one). Child circles the odd one.
-- Answer rings the odd cell with a thick red ellipse (B&W-safe). Self-checking: only one differs.
+- Each cell is a **card = a row of several shapes** (easy 2 / normal 3 / hard 4 shapes).
+  Every card is identical except one, which differs by either:
+  - `replace` — one shape swapped for a different shape, or
+  - `swap` (hard) — two shapes' positions exchanged (same shapes, different order — subtle).
+  Grid size grows with difficulty (easy 3×2 / normal 3×3 / hard 4×3 = 12 cards), so it becomes
+  a careful side-by-side comparison rather than a one-glance spot.
+- Answer rings the odd card with a thick red ellipse (B&W-safe). Self-checking: only one differs.
 
 ### Puzzle 4: しきつめ (Tiling) — done, but de-emphasized
 - Frame (easy 4×4 / normal 4×5 / hard 5×5) fully tiled with polyominoes

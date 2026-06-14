@@ -1,26 +1,24 @@
 /**
  * なかまはずれ の生成。
- * すべて同じ特徴をもつアイテムを並べ、1つだけある特徴（形／大きさ／数）を変える。
- * 子どもは「1つだけ ちがう」ものを ○で囲む。違いは1つだけなので自己検証できる。
+ * 各マスは複数の図形を並べた「カード」。すべて同じカードのうち、1枚だけが違う。
+ * 違いは (a) 1つの図形が別物に変わる(replace) か (b) 2つの並び順が入れ替わる(swap)。
+ * じっくり見比べないと分からないようにし、選択肢数も難易度で増やす。
  */
 import type { Difficulty } from '../../types.js';
-import { mulberry32 } from '../../rng.js';
+import { mulberry32, type Rng } from '../../rng.js';
 
-export type Axis = 'shape' | 'size' | 'count';
+export type Mutation = 'replace' | 'swap';
 
-export interface OddItem {
-  iconId: string;
-  /** size軸: 大きさ倍率（既定1） */
-  scale: number;
-  /** count軸: 表示する個数（指定時は個数で見せる） */
-  count?: number;
+export interface Card {
+  /** 左から並ぶ図形ID */
+  shapes: string[];
 }
 
 export interface OddData {
   cols: number;
   rows: number;
-  axis: Axis;
-  items: OddItem[]; // row-major
+  mutation: Mutation;
+  cards: Card[]; // row-major
   oddIndex: number;
 }
 
@@ -29,52 +27,59 @@ const SHAPES = ['circle', 'square', 'triangle', 'star', 'heart', 'diamond', 'moo
 interface Setting {
   cols: number;
   rows: number;
-  axes: Axis[];
+  /** 1カードあたりの図形数 */
+  m: number;
+  mutations: Mutation[];
 }
 
 const SETTINGS: Record<Difficulty, Setting> = {
-  easy: { cols: 3, rows: 2, axes: ['shape'] },
-  normal: { cols: 3, rows: 3, axes: ['shape', 'size', 'count'] },
-  hard: { cols: 3, rows: 3, axes: ['count', 'size'] },
+  easy: { cols: 3, rows: 2, m: 2, mutations: ['replace'] },
+  normal: { cols: 3, rows: 3, m: 3, mutations: ['replace'] },
+  hard: { cols: 4, rows: 3, m: 4, mutations: ['replace', 'swap'] },
 };
 
 export function generateOdd(seed: number, difficulty: Difficulty): OddData {
   const rng = mulberry32(seed);
   const s = SETTINGS[difficulty];
-  const axis = rng.pick(s.axes);
   const total = s.cols * s.rows;
   const oddIndex = rng.int(total);
+  const mutation = rng.pick(s.mutations);
 
-  let items: OddItem[];
-  switch (axis) {
-    case 'shape': {
-      const common = rng.pick(SHAPES);
-      const odd = rng.pick(SHAPES.filter((id) => id !== common));
-      items = Array.from({ length: total }, () => ({ iconId: common, scale: 1 }));
-      items[oddIndex] = { iconId: odd, scale: 1 };
-      break;
-    }
-    case 'size': {
-      const icon = rng.pick(SHAPES);
-      // hard はやや控えめな差にして難しくする
-      const oddScale =
-        difficulty === 'hard' ? rng.pick([0.72, 1.3]) : rng.pick([0.6, 1.5]);
-      items = Array.from({ length: total }, () => ({ iconId: icon, scale: 1 }));
-      items[oddIndex] = { iconId: icon, scale: oddScale };
-      break;
-    }
-    case 'count':
-    default: {
-      const icon = 'circle';
-      const common = difficulty === 'hard' ? 4 + rng.int(3) : 2 + rng.int(3); // hard:4-6 / 他:2-4
-      const odd = rng.next() < 0.5 ? common - 1 : common + 1;
-      items = Array.from({ length: total }, () => ({ iconId: icon, scale: 1, count: common }));
-      items[oddIndex] = { iconId: icon, scale: 1, count: Math.max(1, odd) };
-      break;
-    }
+  const template = makeTemplate(rng, s.m);
+  const odd = mutate(rng, template, mutation);
+
+  const cards: Card[] = Array.from({ length: total }, () => ({ shapes: template.slice() }));
+  cards[oddIndex] = { shapes: odd };
+
+  return { cols: s.cols, rows: s.rows, mutation, cards, oddIndex };
+}
+
+/** 2種類以上の図形を含むテンプレートを作る（swap が成立するように） */
+function makeTemplate(rng: Rng, m: number): string[] {
+  for (let t = 0; t < 100; t++) {
+    const tpl = Array.from({ length: m }, () => rng.pick(SHAPES));
+    if (new Set(tpl).size >= 2) return tpl;
   }
+  return SHAPES.slice(0, m);
+}
 
-  return { cols: s.cols, rows: s.rows, axis, items, oddIndex };
+function mutate(rng: Rng, tpl: string[], mutation: Mutation): string[] {
+  const odd = tpl.slice();
+  if (mutation === 'swap') {
+    const pairs: [number, number][] = [];
+    for (let i = 0; i < tpl.length; i++) {
+      for (let j = i + 1; j < tpl.length; j++) {
+        if (tpl[i] !== tpl[j]) pairs.push([i, j]);
+      }
+    }
+    const [i, j] = rng.pick(pairs);
+    [odd[i], odd[j]] = [odd[j], odd[i]];
+  } else {
+    const slot = rng.int(tpl.length);
+    const cur = tpl[slot];
+    odd[slot] = rng.pick(SHAPES.filter((x) => x !== cur));
+  }
+  return odd;
 }
 
 export { SHAPES };
