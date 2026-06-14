@@ -24,11 +24,28 @@ Core infrastructure and two puzzle types are complete and verified.
   icon set. Branches allowed (no unique-solution requirement).
 - Answer page highlights the path in color **plus step numbers and a thick line** (B&W-safe).
 
-### Puzzle 2: しきつめ (Tiling) — done
+### Puzzle 2: パターンのつづき (Continue the Pattern) — done
+- Several rows, each a periodic pattern of period k (easy 2 / normal 2–3 / hard 3–4).
+  At least two full periods are shown, then the last cells are blanked (dashed box + faint "?")
+  for the child to draw. Icons restricted to simple, easy-to-draw shapes.
+- Answer fills each blank with the correct icon on a highlighted (yellow) cell. Self-checking:
+  the rule repeats.
+
+### Puzzle 3: なかまはずれ (Odd One Out) — done
+- A grid of items (easy 3×2 / normal & hard 3×3). Exactly one differs along a single axis:
+  **shape**, **size**, or **count** (dots). Difficulty selects the axis and how subtle the
+  difference is (e.g. hard count uses 4–6 dots differing by one). Child circles the odd one.
+- Answer rings the odd cell with a thick red ellipse (B&W-safe). Self-checking: only one differs.
+
+### Puzzle 4: しきつめ (Tiling) — done, but de-emphasized
 - Frame (easy 4×4 / normal 4×5 / hard 5×5) fully tiled with polyominoes
   (domino, straight-tromino, L-tromino, 2×2 square) via randomized backtracking.
 - Problem shows the empty frame + "blocks to use" inventory (shape + count).
 - Answer colors each region and adds **thick region borders + region numbers** (B&W-safe).
+- **Note:** in practice this is hard for 1st graders on paper — without physically moving
+  pieces, reverse-engineering the partition is demanding. Kept available but listed last in
+  the registry. Future ideas: pre-fill some block boundaries as hints, or shrink to a fixed
+  small block set per sheet.
 
 ### Verification
 - `npm run build` — type-check + production build, clean.
@@ -50,38 +67,32 @@ Each can be added by implementing `PuzzleType` and registering it in `registry.t
 Listed roughly easiest-to-build first. All must keep: pencil-only solving, self-verifiable,
 hiragana, seeded/reproducible, B&W-printable.
 
-### High priority — strong pattern-finding fit, easy to generate
-1. **パターンのつづき (Continue the pattern)**
-   A row/grid of icons following a periodic or simple-progression rule, with the last few
-   cells blank for the child to fill. Self-check: the rule repeats. Trivial generator
-   (reuse `icons.ts` + cycle logic from rule-maze).
-2. **なかまはずれ (Odd one out)**
-   A small set of items sharing an attribute (shape/count/color-as-hatching/orientation)
-   with exactly one that differs; circle the odd one. Generator picks an attribute axis and
-   one outlier. Self-check is immediate.
-3. **てんつなぎ (Connect the dots, by number or pattern order)**
-   Numbered (or pattern-ordered) dots that form a picture when connected in order.
-   Reuses SVG line drawing; answer page shows the completed outline. Pattern-order variant
-   (e.g. ●→■→▲→…) reinforces sequence skills like the maze.
-
 ### Medium priority — needs a bit more generation logic
-4. **あみだくじ (Ghost-leg / Amidakuji)**
-   Vertical lines with random horizontal rungs; follow a line top-to-bottom to reach a goal.
-   Generate rungs, compute the resulting permutation for the answer key. Self-check by tracing.
-5. **まちがいさがし (Spot the difference)**
+1. **あみだくじ (Ghost-leg / Amidakuji) — needs a twist**
+   Plain "trace a line to the goal" is not very interesting on its own. Twist ideas to make it
+   a pattern/reasoning task: (a) **collect-and-check** — place icons along the legs; the child
+   traces and writes down the sequence they collect, then checks it against a target pattern;
+   (b) **reverse** — given a goal, find which start reaches it; (c) **rule rungs** — only cross
+   a rung if it matches a rule. Generator builds rungs and computes the permutation for the key.
+2. **まちがいさがし (Spot the difference)**
    Generate one scene from icons on a grid, duplicate it, then mutate K cells (swap/remove/move).
    Answer marks the differences. Needs a compact, legibly-printable scene layout.
-6. **かずのみち / すごろく型 (Number path)**
+3. **かずのみち / すごろく型 (Number path)**
    Step through a grid following a numeric rule (+1, +2, skip-counting); trace the path whose
    numbers obey the rule. Blends the maze idea with early counting.
 
 ### Lower priority — heavier or closer to "logic" than "pattern"
-7. **ぬりえパターン (Pattern coloring / pixel rule)**
+4. **ぬりえパターン (Pattern coloring / pixel rule)**
    Fill cells per a key (e.g. "color every cell with a ★") to reveal a picture. Color-by-symbol
    keeps it B&W-friendly. Generator hides a bitmap behind a symbol grid.
-8. **みちつくり (Pipe/path connection)**
+5. **みちつくり (Pipe/path connection)**
    Connect matching pairs across a grid without crossing. More puzzle-like; generation and
    the no-crossing constraint are more involved, and self-verification is weaker.
+
+### Considered but dropped
+- **てんつなぎ (Connect the dots)** — making a *recognizable* picture from dots requires
+  authored artwork; auto-generating something a child recognizes is hard. Revisit only with a
+  curated shape library.
 
 ## Extension notes
 - Keep generators deterministic: take all randomness from `mulberry32(seed)` only.

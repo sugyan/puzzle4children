@@ -1,5 +1,7 @@
 import { generateMaze } from '../src/puzzles/rule-maze/generate.js';
 import { generateTiling, BLOCK_BY_ID } from '../src/puzzles/tiling/generate.js';
+import { generatePattern } from '../src/puzzles/pattern-next/generate.js';
+import { generateOdd } from '../src/puzzles/odd-one-out/generate.js';
 import { puzzles } from '../src/puzzles/registry.js';
 import type { Difficulty } from '../src/types.js';
 
@@ -55,6 +57,50 @@ for (const d of difficulties) {
     for (let y = 0; y < rows; y++)
       for (let x = 0; x < cols; x++)
         if (cover[y][x] !== 1) fail(`tiling ${d} seed${s}: cell ${x},${y} covered ${cover[y][x]}x`);
+  }
+}
+
+// ---- pattern-next ----
+for (const d of difficulties) {
+  for (let s = 0; s < 30; s++) {
+    const p = generatePattern(s, d);
+    for (const row of p.rows) {
+      if (row.blanks < 1) fail(`pattern ${d} seed${s}: no blanks`);
+      const visible = row.cells.length - row.blanks;
+      if (visible < 2 * row.period) fail(`pattern ${d} seed${s}: fewer than 2 periods shown`);
+      // 周期性: cells[i] は cells[i % period] と一致
+      for (let i = 0; i < row.cells.length; i++) {
+        if (row.cells[i] !== row.cells[i % row.period]) fail(`pattern ${d} seed${s}: not periodic`);
+      }
+      // 1周期に2種類以上
+      const baseSet = new Set(row.cells.slice(0, row.period));
+      if (baseSet.size < 2) fail(`pattern ${d} seed${s}: base not varied`);
+    }
+  }
+}
+
+// ---- odd-one-out ----
+for (const d of difficulties) {
+  for (let s = 0; s < 30; s++) {
+    const o = generateOdd(s, d);
+    if (o.oddIndex < 0 || o.oddIndex >= o.items.length) fail(`odd ${d} seed${s}: bad oddIndex`);
+    const sig = (it: (typeof o.items)[number]) => `${it.iconId}|${it.scale}|${it.count ?? '-'}`;
+    const oddSig = sig(o.items[o.oddIndex]);
+    let differing = 0;
+    o.items.forEach((it, i) => {
+      if (i === o.oddIndex) return;
+      if (sig(it) === oddSig) fail(`odd ${d} seed${s}: a normal item matches the odd one`);
+    });
+    // なかまはずれ以外はすべて同じ特徴
+    const commonSig = sig(o.items[(o.oddIndex + 1) % o.items.length]);
+    o.items.forEach((it, i) => {
+      if (i === o.oddIndex) {
+        if (sig(it) === commonSig) fail(`odd ${d} seed${s}: odd item not different`);
+      } else {
+        if (sig(it) !== commonSig) differing++;
+      }
+    });
+    if (differing !== 0) fail(`odd ${d} seed${s}: more than one differs`);
   }
 }
 
