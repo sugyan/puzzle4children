@@ -2,6 +2,9 @@
   "name": "puzzle4children",
   "private": true,
   "version": "0.1.0",
+  "description": "小学校低学年むけ 知育パズル自動生成ツール（A4印刷・鉛筆で解く）",
+  "author": "sugyan",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
