@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ちいくパズル メーカー</title>
+  </head>
+  <body>
+    <header class="controls no-print">
+      <h1>ちいくパズル メーカー</h1>
+      <div class="controls-row">
+        <label>
+          <span>しゅるい</span>
+          <select id="type"></select>
+        </label>
+        <label>
+          <span>むずかしさ</span>
+          <select id="difficulty">
+            <option value="easy">かんたん</option>
+            <option value="normal" selected>ふつう</option>
+            <option value="hard">むずかしい</option>
+          </select>
+        </label>
+        <label>
+          <span>まいすう</span>
+          <input id="count" type="number" min="1" max="20" value="2" />
+        </label>
+        <label class="seed-field">
+          <span>シード</span>
+          <input id="seed" type="number" min="0" placeholder="ランダム" />
+          <button id="random-seed" type="button" title="ランダムなシードにする">🎲</button>
+        </label>
+      </div>
+      <div class="controls-row">
+        <button id="generate" type="button" class="primary">もんだいをつくる</button>
+        <button id="print" type="button">いんさつ</button>
+      </div>
+      <p class="hint">
+        印刷は「いんさつ」ボタン →
+        ブラウザの印刷ダイアログで「用紙: A4」「余白: なし／最小」にしてください。
+      </p>
+    </header>
+
+    <main id="output" class="output"></main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
